@@ -10,7 +10,7 @@
 
 void queue_init() {
     INSTR_QUEUE = (func_queue*) malloc(sizeof(func_queue));
-    INSTR_QUEUE->functions = (func_and_param_wrapper*) calloc(QUEUE_CAPACITY, sizeof(func_and_param_wrapper));
+    INSTR_QUEUE->functions = (func_and_param_wrapper*)calloc(QUEUE_CAPACITY, sizeof(func_and_param_wrapper));
     INSTR_QUEUE->front = -1;
     INSTR_QUEUE->back = -1;
 
@@ -37,8 +37,16 @@ void queue_init() {
 void queue_free() {
     free(INSTR_QUEUE->functions);
     free(INSTR_QUEUE);
+
+    for (int i = 0; i < PIXEL_FIFO_CAPACITY; i++) {
+        free(PPU->BACKGROUND_FIFO->pixel_data[i]);
+    }
     free(PPU->BACKGROUND_FIFO->pixel_data);
     free(PPU->BACKGROUND_FIFO);
+
+    for (int i = 0; i < PIXEL_FIFO_CAPACITY; i++) {
+        free(PPU->SPRITE_FIFO->pixel_data[i]);
+    }
     free(PPU->SPRITE_FIFO->pixel_data);
     free(PPU->SPRITE_FIFO);
 }
