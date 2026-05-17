@@ -15,9 +15,9 @@
 static void pop_pixel();
 
 void ppu_init() {
-    PPU = malloc(sizeof(PPU_STRUCT));
-    PPU->CURRENT_OBJ = malloc(sizeof(OAM_STRUCT));
-    PPU->PIXEL_DATA = calloc(PIXELS_PER_TILE, sizeof(PIXEL_DATA));
+    PPU = (PPU_STRUCT*)malloc(sizeof(PPU_STRUCT));
+    PPU->CURRENT_OBJ = (OAM_STRUCT*)malloc(sizeof(OAM_STRUCT));
+    PPU->PIXEL_DATA = (PIXEL_DATA*)calloc(PIXELS_PER_TILE, sizeof(PIXEL_DATA));
     PPU->STATE = V_BLANK;
     PPU->RENDER_LINE_CYCLE = 1;
     PPU->FETCH_TYPE = BACKGROUND;
@@ -42,9 +42,8 @@ static void oam_search_validate() {
     uint8_t lcd_y_position = MEMORY[LY];
     uint8_t obj_height = MEMORY[LCDC] & 0x04 ? 16 : 8;
 
-
-    //an objects y position is equal to their vertical position on screen + 16
-    if ((lcd_y_position >= obj_y_pos - 16) && (lcd_y_position < obj_y_pos - 16 + obj_height)) {
+    // An object's y-position is equal to their vertical position on screen + 16
+    if ((lcd_y_position >= obj_y_pos - 16) && (lcd_y_position < obj_y_pos - 16 + obj_height )) {
         PPU->VALID_OAM = true;
         PPU->CURRENT_OBJ->y_pos = obj_y_pos;
         PPU->CURRENT_OBJ->x_pos = obj_x_pos;
@@ -96,6 +95,7 @@ static void construct_pixel_data() {
 
             PPU->PIXEL_DATA[j].priority = obj->priority;
             PPU->PIXEL_DATA[j].x_flip = obj->x_flip;
+            PPU->PIXEL_DATA[j].x_pos = obj->x_pos;
         }
     }
 }
@@ -192,17 +192,19 @@ static void pixel_push() {
 static void pop_pixel() {
     PIXEL_DATA pixel_data;
 
-    //throw away scroll pixels
+    // Throw away scroll pixels
     if (PPU->NUM_SCROLL_PIXELS) {
         pixel_fifo_pop(PPU->BACKGROUND_FIFO, &pixel_data);
         PPU->NUM_SCROLL_PIXELS--;
         return;
-    //merge pixel from both fifos
-    } else if (!pixel_fifo_is_empty(PPU->SPRITE_FIFO)) {
+    }
+    // Merge pixel from both fifos
+    else if (!pixel_fifo_is_empty(PPU->SPRITE_FIFO)) {
         PIXEL_DATA bg_pixel_data;
         PIXEL_DATA obj_pixel_data;
         pixel_fifo_pop(PPU->BACKGROUND_FIFO, &bg_pixel_data);
         pixel_fifo_pop(PPU->SPRITE_FIFO, &obj_pixel_data);
+
         if (MEMORY[LCDC] & 0x01) {
             bool transparent = obj_pixel_data.binary_data == 0x00;
             bool priority = obj_pixel_data.priority && (bg_pixel_data.binary_data != 0x00);
@@ -212,7 +214,7 @@ static void pop_pixel() {
             pixel_data = bg_pixel_data;
         }
     }
-    //pop from background fifo
+    // Pop from background fifo
     else {
         pixel_fifo_pop(PPU->BACKGROUND_FIFO, &pixel_data);
     }
@@ -244,7 +246,7 @@ static void pixel_renderer() {
         PPU->WINDOW_LINE_COUNTER++;
         return;
     }
-    //check for object
+    // Check for object
     const OAM_STRUCT* obj = heap_peek();
     if (obj && obj->x_pos < PPU->RENDER_X + 8) {
         heap_delete_min();
@@ -256,7 +258,7 @@ static void pixel_renderer() {
         PPU->PIXEL_TRANSFER_STATE = FETCH_TILE;
         return;
     }
-    //pixel_renderer if enough data in fifo
+    // Pixel_renderer if enough data in fifo
     if (!pixel_fifo_is_empty(PPU->BACKGROUND_FIFO)) {
         pop_pixel();
     }

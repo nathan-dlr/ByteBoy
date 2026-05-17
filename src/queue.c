@@ -26,7 +26,7 @@ void queue_init() {
     PPU->SPRITE_FIFO = (PIXEL_FIFO*) malloc(sizeof(PIXEL_FIFO));
     PPU->SPRITE_FIFO->pixel_data = (PIXEL_DATA**)malloc(PIXEL_FIFO_CAPACITY * sizeof(PIXEL_DATA*));
     for (int i = 0; i < PIXEL_FIFO_CAPACITY; i++) {
-        PPU->SPRITE_FIFO->pixel_data[i] = (PIXEL_DATA*)calloc(1, sizeof(PIXEL_DATA));
+        PPU->SPRITE_FIFO->pixel_data[i] = (PIXEL_DATA*)malloc(sizeof(PIXEL_DATA));
         PPU->SPRITE_FIFO->pixel_data[i]->binary_data = 0xFF;
     }
     PPU->SPRITE_FIFO->front = -1;
@@ -102,16 +102,17 @@ void sprite_fifo_push(const PIXEL_DATA* pixel_data) {
         PIXEL_FIFO->front = 0;
     }
     if (x_flip) {
-        for (int8_t i = 0, j = 7; i < 8; i++, j--) {
+        for (int8_t i = 7; i >= 0; i--) {
             PIXEL_FIFO->back = index = (PIXEL_FIFO->back + 1) % PIXEL_FIFO_CAPACITY;
-            bool empty_data = PIXEL_FIFO->pixel_data[index]->binary_data == 0xFF;
-            bool lower_address = pixel_data[j].address < PIXEL_FIFO->pixel_data[index]->address;
-            if (empty_data || (!empty_data && lower_address)) {
-                PIXEL_FIFO->pixel_data[index]->binary_data = pixel_data[j].binary_data;
-                PIXEL_FIFO->pixel_data[index]->source = pixel_data[j].source;
-                PIXEL_FIFO->pixel_data[index]->palette = pixel_data[j].palette;
-                PIXEL_FIFO->pixel_data[index]->priority = pixel_data[j].priority;
-                PIXEL_FIFO->pixel_data[index]->address = pixel_data[j].address;
+            bool empty_data = PIXEL_FIFO->pixel_data[PIXEL_FIFO->back]->binary_data == 0xFF;
+            bool lower_address = pixel_data[i].address < PIXEL_FIFO->pixel_data[PIXEL_FIFO->back]->address;
+            bool same_x_pos = pixel_data[i].x_pos == PIXEL_FIFO->pixel_data[PIXEL_FIFO->back]->x_pos;
+            if (empty_data || (!empty_data && (lower_address && same_x_pos))) {
+                PIXEL_FIFO->pixel_data[index]->binary_data = pixel_data[i].binary_data;
+                PIXEL_FIFO->pixel_data[index]->source = pixel_data[i].source;
+                PIXEL_FIFO->pixel_data[index]->palette = pixel_data[i].palette;
+                PIXEL_FIFO->pixel_data[index]->priority = pixel_data[i].priority;
+                PIXEL_FIFO->pixel_data[index]->address = pixel_data[i].address;
                 PIXEL_FIFO->size++;
             }
         }
@@ -121,12 +122,13 @@ void sprite_fifo_push(const PIXEL_DATA* pixel_data) {
             PIXEL_FIFO->back = index = (PIXEL_FIFO->back + 1) % PIXEL_FIFO_CAPACITY;
             bool empty_data = PIXEL_FIFO->pixel_data[PIXEL_FIFO->back]->binary_data == 0xFF;
             bool lower_address = pixel_data[i].address < PIXEL_FIFO->pixel_data[PIXEL_FIFO->back]->address;
-            if (empty_data || (!empty_data && lower_address)) {
-                PIXEL_FIFO->pixel_data[PIXEL_FIFO->back]->binary_data = pixel_data[i].binary_data;
-                PIXEL_FIFO->pixel_data[PIXEL_FIFO->back]->source = pixel_data[i].source;
-                PIXEL_FIFO->pixel_data[PIXEL_FIFO->back]->palette = pixel_data[i].palette;
-                PIXEL_FIFO->pixel_data[PIXEL_FIFO->back]->priority = pixel_data[i].priority;
-                PIXEL_FIFO->pixel_data[PIXEL_FIFO->back]->address = pixel_data[i].address;
+            bool same_x_pos = pixel_data[i].x_pos == PIXEL_FIFO->pixel_data[PIXEL_FIFO->back]->x_pos;
+            if (empty_data || (!empty_data && (lower_address && same_x_pos))) {
+                PIXEL_FIFO->pixel_data[index]->binary_data = pixel_data[i].binary_data;
+                PIXEL_FIFO->pixel_data[index]->source = pixel_data[i].source;
+                PIXEL_FIFO->pixel_data[index]->palette = pixel_data[i].palette;
+                PIXEL_FIFO->pixel_data[index]->priority = pixel_data[i].priority;
+                PIXEL_FIFO->pixel_data[index]->address = pixel_data[i].address;
                 PIXEL_FIFO->size++;
             }
         }
@@ -139,16 +141,19 @@ void pixel_fifo_pop(PIXEL_FIFO* PIXEL_FIFO, PIXEL_DATA* ret) {
         free_resources();
         exit(1);
     }
+
     ret->binary_data = PIXEL_FIFO->pixel_data[PIXEL_FIFO->front]->binary_data;
     ret->source = PIXEL_FIFO->pixel_data[PIXEL_FIFO->front]->source;
     ret->palette = PIXEL_FIFO->pixel_data[PIXEL_FIFO->front]->palette;
     ret->priority = PIXEL_FIFO->pixel_data[PIXEL_FIFO->front]->priority;
-
-    PIXEL_FIFO->pixel_data[PIXEL_FIFO->front]->binary_data = 0xFF;
+    ret->address = PIXEL_FIFO->pixel_data[PIXEL_FIFO->front]->address;
 
     if (PIXEL_FIFO->front == PIXEL_FIFO->back) {
         PIXEL_FIFO->front = PIXEL_FIFO->back = -1;
         PIXEL_FIFO->size = 0;
+        for (int i = 0; i < PIXEL_FIFO_CAPACITY; i++) {
+            PIXEL_FIFO->pixel_data[i]->binary_data = 0xFF;
+        }
     }
     else {
         PIXEL_FIFO->front = (PIXEL_FIFO->front + 1) % PIXEL_FIFO_CAPACITY;

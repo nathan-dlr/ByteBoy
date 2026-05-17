@@ -91,6 +91,7 @@ typedef struct PIXEL_DATA {
     bool priority;
     uint16_t address;
     bool x_flip;
+    uint8_t x_pos;
 } PIXEL_DATA;
 
 typedef struct PIXEL_FIFO {
