@@ -95,7 +95,7 @@ static void construct_pixel_data() {
 
             PPU->PIXEL_DATA[j].priority = obj->priority;
             PPU->PIXEL_DATA[j].x_flip = obj->x_flip;
-            PPU->PIXEL_DATA[j].x_pos = obj->x_pos;
+            PPU->PIXEL_DATA[j].x_pos = obj->x_pos + j;
         }
     }
 }
