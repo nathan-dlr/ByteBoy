@@ -115,6 +115,7 @@ void sprite_fifo_push(const PIXEL_DATA* pixel_data) {
                 PIXEL_FIFO->pixel_data[next]->palette = pixel_data[i].palette;
                 PIXEL_FIFO->pixel_data[next]->priority = pixel_data[i].priority;
                 PIXEL_FIFO->pixel_data[next]->address = pixel_data[i].address;
+                PIXEL_FIFO->pixel_data[next]->x_pos = pixel_data[i].x_pos;
                 PIXEL_FIFO->back = next;
                 PIXEL_FIFO->size++;
             }
@@ -134,6 +135,7 @@ void sprite_fifo_push(const PIXEL_DATA* pixel_data) {
                 PIXEL_FIFO->pixel_data[next]->palette = pixel_data[i].palette;
                 PIXEL_FIFO->pixel_data[next]->priority = pixel_data[i].priority;
                 PIXEL_FIFO->pixel_data[next]->address = pixel_data[i].address;
+                PIXEL_FIFO->pixel_data[next]->x_pos = pixel_data[i].x_pos;
                 PIXEL_FIFO->back = next;
                 PIXEL_FIFO->size++;
             }
@@ -153,6 +155,7 @@ void pixel_fifo_pop(PIXEL_FIFO* PIXEL_FIFO, PIXEL_DATA* ret) {
     ret->palette = PIXEL_FIFO->pixel_data[PIXEL_FIFO->front]->palette;
     ret->priority = PIXEL_FIFO->pixel_data[PIXEL_FIFO->front]->priority;
     ret->address = PIXEL_FIFO->pixel_data[PIXEL_FIFO->front]->address;
+    ret->x_pos = PIXEL_FIFO->pixel_data[PIXEL_FIFO->front]->x_pos;
 
     PIXEL_FIFO->pixel_data[PIXEL_FIFO->front]->binary_data = 0xFF;
 
