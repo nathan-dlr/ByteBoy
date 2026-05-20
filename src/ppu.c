@@ -27,6 +27,8 @@ void ppu_init() {
     PPU->POP_ENABLE = true;
     PPU->FIRST_TILE_DONE = false;
     PPU->WINDOW_LINE_COUNTER = 0;
+    PPU->Y_CONDITION = false;
+    PPU->INC_WINDOW_COUNTER = false;
 }
 
 void ppu_free() {
@@ -179,7 +181,7 @@ static void pixel_push() {
         sprite_fifo_push(PPU->PIXEL_DATA);
         heap_delete_min();
         PPU->PIXEL_TRANSFER_STATE = FETCH_TILE;
-        if ((PPU->RENDER_X >= MEMORY[WX] - 7) && (MEMORY[LY] > MEMORY[WY]) && (MEMORY[LCDC] & 0x20)) {
+        if ((PPU->RENDER_X >= MEMORY[WX] - 7) && PPU->Y_CONDITION && (MEMORY[LCDC] & 0x20)) {
             PPU->FETCH_TYPE = WINDOW;
         }
         else {
@@ -238,12 +240,12 @@ static void pixel_renderer() {
         return;
     }
     //Check for window
-    if ((PPU->RENDER_X == MEMORY[WX] - 7) && (MEMORY[LY] > MEMORY[WY]) && (PPU->FETCH_TYPE == BACKGROUND) && (MEMORY[LCDC] & 0x20)) {
+    if ((PPU->RENDER_X == MEMORY[WX] - 7) && PPU->Y_CONDITION && (PPU->FETCH_TYPE == BACKGROUND) && (MEMORY[LCDC] & 0x20)) {
         pixel_fifo_clear(PPU->BACKGROUND_FIFO);
         PPU->PIXEL_TRANSFER_STATE = FETCH_TILE;
         PPU->FETCHER_X = 0;
         PPU->FETCH_TYPE = WINDOW;
-        PPU->WINDOW_LINE_COUNTER++;
+        PPU->INC_WINDOW_COUNTER = true;
         return;
     }
     // Check for object
@@ -279,6 +281,15 @@ static void check_lyc_interrupt() {
 void h_blank() {
     if (PPU->RENDER_LINE_CYCLE == CYCLES_PER_LINE) {
         MEMORY[LY]++;
+        // "At the beginning of each scanline, if the value of WY is equal to LY, the Y condition becomes true (and remains so for subsequent scanlines)."
+        if (MEMORY[LY] == MEMORY[WY] && (MEMORY[LCDC] & 0x20)) {
+            PPU->Y_CONDITION = true;
+            PPU->WINDOW_LINE_COUNTER = 0;
+        }
+        else if (PPU->INC_WINDOW_COUNTER) {
+            PPU->INC_WINDOW_COUNTER = false;
+            PPU->WINDOW_LINE_COUNTER++;
+        }
         PPU->RENDER_LINE_CYCLE = 0;
         PPU->FIRST_TILE_DONE = false;
         check_lyc_interrupt();
@@ -315,6 +326,8 @@ void v_blank() {
         check_lyc_interrupt();
         PPU->RENDER_LINE_CYCLE = 0;
         PPU->WINDOW_LINE_COUNTER = 0;
+        PPU->Y_CONDITION = false;
+        PPU->INC_WINDOW_COUNTER = false;
         PPU->FIRST_TILE_DONE = false;
         PPU->STATE = OAM_SEARCH;
         MEMORY[STAT] = (MEMORY[STAT] & 0xFC) | 0x02;
