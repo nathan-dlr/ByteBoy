@@ -10,18 +10,8 @@ void ram_enable() {
 
 static void set_rom_bank() {
     uint8_t bank_num = CPU->DATA_BUS & 0x1F;
-    if (bank_num == 0) {
-        bank_num = 1;
-    }
     if (bank_num > CARTRIDGE->NUM_ROM_BANKS) {
-        uint8_t mask = 0x01;
-        //TODO might work with cartidge->rom_size - 1
-        for (uint8_t bit = 0x04; bit <= 0x10; bit = bit << 1) {
-            if (!(CARTRIDGE->NUM_ROM_BANKS & bit)) {
-                break;
-            }
-            mask = (mask << 1) | 0x01;
-        }
+        uint8_t mask = CARTRIDGE->NUM_ROM_BANKS - 1;
         bank_num &= mask;
     }
     if (bank_num == 0x00 || bank_num == 0x20 || bank_num == 0x40 || bank_num == 0x60) {
@@ -39,19 +29,18 @@ static void set_banking_mode() {
 }
 
 static void read_bank_00() {
-    if (!CARTRIDGE->BANK_MODE) {
-        CPU->DATA_BUS = CARTRIDGE->ROM[CPU->ADDRESS_BUS];
+    if (CARTRIDGE->NUM_ROM_BANKS < 64 || !CARTRIDGE->BANK_MODE) {
+        CPU->DATA_BUS = CARTRIDGE->ROM[CPU->ADDRESS_BUS & 0x3FFF];
     }
-    else if (CARTRIDGE->NUM_ROM_BANKS >= 64) {
-        CPU->DATA_BUS = CARTRIDGE->ROM[(CARTRIDGE->RAM_UPPER_ROM << 19) | CPU->ADDRESS_BUS];
+    else if (CARTRIDGE->NUM_ROM_BANKS >= 64 && CARTRIDGE->BANK_MODE) {
+        CPU->DATA_BUS = CARTRIDGE->ROM[(CARTRIDGE->RAM_UPPER_ROM << 19) | CPU->ADDRESS_BUS & 0x3FFF];
     }
     else {
         perror("Error in read bank 00");
     }
 }
-
 static void read_bank_0x() {
-    uint32_t address = (CARTRIDGE->CART_ROM_BANK << 14) | CPU->ADDRESS_BUS & 0x3FFF;
+    uint32_t address = (CARTRIDGE->CART_ROM_BANK << 14) | (CPU->ADDRESS_BUS & 0x3FFF);
     if (CARTRIDGE->NUM_ROM_BANKS >= 64) {
         address |= CARTRIDGE->RAM_UPPER_ROM << 19;
     }
@@ -62,8 +51,9 @@ static void read_bank_0x() {
 }
 
 static void read_ram() {
-    if (!CARTRIDGE->RAM_ENABLE) {
+    if (!CARTRIDGE->RAM_ENABLE || !CARTRIDGE->RAM_SIZE) {
         CPU->DATA_BUS = 0xFF;
+        return;
     }
     if (!CARTRIDGE->BANK_MODE) {
         CPU->DATA_BUS = CARTRIDGE->RAM[(CPU->ADDRESS_BUS & 0x1FFF)];
@@ -74,11 +64,11 @@ static void read_ram() {
 }
 
 static void write_ram() {
-    if (!CARTRIDGE->RAM_ENABLE) {
+    if (!CARTRIDGE->RAM_ENABLE || !CARTRIDGE->RAM_SIZE) {
         return;
     }
     if (!CARTRIDGE->BANK_MODE) {
-        CARTRIDGE->RAM[CPU->ADDRESS_BUS] = CPU->DATA_BUS;
+        CARTRIDGE->RAM[CPU->ADDRESS_BUS & 0x1FFF] = CPU->DATA_BUS;
     }
     else {
         CARTRIDGE->RAM[(CARTRIDGE->RAM_UPPER_ROM << 13) | (CPU->ADDRESS_BUS & 0x1FFF)] = CPU->DATA_BUS;
@@ -90,15 +80,15 @@ static void write_ram() {
  */
 void read_memory(uint8_t UNUSED) {
     (void)UNUSED;
-    if (CARTRIDGE->CART_TYPE == MBC0 && CPU->ADDRESS_BUS <= 0x8000) {
+    if (CARTRIDGE->CART_TYPE == MBC0 && CPU->ADDRESS_BUS < 0x8000) {
         CPU->DATA_BUS = CARTRIDGE->ROM[CPU->ADDRESS_BUS];
         return;
     }
-    else if (CPU->ADDRESS_BUS <= 0x4000) {
+    else if (CPU->ADDRESS_BUS < 0x4000) {
         read_bank_00();
         return;
     }
-    else if (CPU->ADDRESS_BUS <= 0x8000) {
+    else if (CPU->ADDRESS_BUS < 0x8000) {
         read_bank_0x();
         return;
     }
@@ -146,25 +136,30 @@ void read_memory(uint8_t UNUSED) {
  */
 void write_memory(uint8_t UNUSED) {
     (void)UNUSED;
-    if (CARTRIDGE->CART_TYPE == MBC0 && CPU->ADDRESS_BUS <= 0x8000) {
+    if (CARTRIDGE->CART_TYPE == MBC0 && CPU->ADDRESS_BUS < 0x8000) {
         return;
     }
+    // 0000–1FFF — RAM Enable (Write Only)
     else if (CPU->ADDRESS_BUS < 0x2000) {
         ram_enable();
         return;
     }
+    // 2000–3FFF — ROM Bank Number (Write Only)
     else if (CPU->ADDRESS_BUS < 0x4000) {
         set_rom_bank();
         return;
     }
+    // 4000–5FFF — RAM Bank Number — or — Upper Bits of ROM Bank Number (Write Only)
     else if (CPU->ADDRESS_BUS < 0x6000) {
         set_RAM_UPPER_ROM();
         return;
     }
+    // 6000–7FFF — Banking Mode Select (Write Only)
     else if (CPU->ADDRESS_BUS < 0x8000) {
         set_banking_mode();
         return;
     }
+    // A000–BFFF — RAM Bank 00–03, if any
     if (CPU->ADDRESS_BUS >= 0xA000 && CPU->ADDRESS_BUS < 0xC000) {
         write_ram();
         return;

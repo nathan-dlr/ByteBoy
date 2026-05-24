@@ -119,12 +119,10 @@ static enum CARTRIDGES set_cartridge_type(FILE* gb_file) {
     switch (header) {
         case 0:
             return MBC0;
-            break;
         case 1:
         case 2:
         case 3:
             return MBC1;
-            break;
         default:
             perror("Memory bank cartridge not supported");
             exit(0);
@@ -145,19 +143,14 @@ static uint32_t get_ram_size(FILE* gb_file) {
     switch (ram_header) {
         case 2:
             return RAM_BANK_SIZE;
-            break;
         case 3:
             return RAM_BANK_SIZE * 4;
-            break;
         case 4:
             return RAM_BANK_SIZE * 16;
-            break;
         case 5:
             return RAM_BANK_SIZE * 8;
-            break;
         default:
             return 0;
-
     }
 }
 /*
@@ -183,6 +176,7 @@ static void memory_init(const char* file_name) {
     CARTRIDGE->ROM_SIZE = rom_size;
     CARTRIDGE->RAM_SIZE = ram_size;
     CARTRIDGE->NUM_ROM_BANKS = num_rom_banks;
+    CARTRIDGE->CART_ROM_BANK = 1;
 
     fseek(gb_file, 0, SEEK_SET);
     fread(CARTRIDGE->ROM, sizeof(uint8_t), rom_size, gb_file);
