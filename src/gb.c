@@ -131,15 +131,15 @@ static enum CARTRIDGES set_cartridge_type(FILE* gb_file) {
 
 static uint32_t get_num_rom_banks(FILE* gb_file) {
     uint8_t rom_header;
-    fread(&rom_header, sizeof(uint8_t), 1, gb_file);
     fseek(gb_file, 0x0148, SEEK_SET);
+    fread(&rom_header, sizeof(uint8_t), 1, gb_file);
     return 2 * (1 << rom_header);
 }
 
 static uint32_t get_ram_size(FILE* gb_file) {
     uint8_t ram_header;
+    fseek(gb_file, 0x0149, SEEK_SET);
     fread(&ram_header, sizeof(uint8_t), 1, gb_file);
-    fseek(gb_file, 0x0148, SEEK_SET);
     switch (ram_header) {
         case 2:
             return RAM_BANK_SIZE;
@@ -176,6 +176,7 @@ static void memory_init(const char* file_name) {
     CARTRIDGE->ROM_SIZE = rom_size;
     CARTRIDGE->RAM_SIZE = ram_size;
     CARTRIDGE->NUM_ROM_BANKS = num_rom_banks;
+
     CARTRIDGE->CART_ROM_BANK = 1;
 
     fseek(gb_file, 0, SEEK_SET);
