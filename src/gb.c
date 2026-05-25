@@ -129,26 +129,26 @@ static enum CARTRIDGES set_cartridge_type(FILE* gb_file) {
     }
 }
 
-static uint32_t get_num_rom_banks(FILE* gb_file) {
+static uint8_t get_num_rom_banks(FILE* gb_file) {
     uint8_t rom_header;
     fseek(gb_file, 0x0148, SEEK_SET);
     fread(&rom_header, sizeof(uint8_t), 1, gb_file);
     return 2 * (1 << rom_header);
 }
 
-static uint32_t get_ram_size(FILE* gb_file) {
+static uint8_t get_num_ram_banks(FILE* gb_file) {
     uint8_t ram_header;
     fseek(gb_file, 0x0149, SEEK_SET);
     fread(&ram_header, sizeof(uint8_t), 1, gb_file);
     switch (ram_header) {
         case 2:
-            return RAM_BANK_SIZE;
+            return 1;
         case 3:
-            return RAM_BANK_SIZE * 4;
+            return 4;
         case 4:
-            return RAM_BANK_SIZE * 16;
+            return 16;
         case 5:
-            return RAM_BANK_SIZE * 8;
+            return 8;
         default:
             return 0;
     }
@@ -163,24 +163,23 @@ static void memory_init(const char* file_name) {
         exit(1);
     }
 
-    enum CARTRIDGES cart_type = set_cartridge_type(gb_file);
-    uint16_t num_rom_banks = get_num_rom_banks(gb_file);
-    uint32_t rom_size = ROM_BANK_SIZE * num_rom_banks;
-    uint32_t ram_size = get_ram_size(gb_file);
-
     MEMORY = malloc(0x10000);
     CARTRIDGE = malloc(sizeof(CARTRIDGE_STRUCT));
-    CARTRIDGE->ROM = malloc(rom_size);
-    CARTRIDGE->RAM = ram_size ? malloc(ram_size) : nullptr;
-    CARTRIDGE->CART_TYPE = cart_type;
-    CARTRIDGE->ROM_SIZE = rom_size;
-    CARTRIDGE->RAM_SIZE = ram_size;
-    CARTRIDGE->NUM_ROM_BANKS = num_rom_banks;
+
+    CARTRIDGE->CART_TYPE = set_cartridge_type(gb_file);
+    CARTRIDGE->NUM_ROM_BANKS = get_num_rom_banks(gb_file);
+    CARTRIDGE->NUM_RAM_BANKS = get_num_ram_banks(gb_file);
+    CARTRIDGE->ROM_SIZE = ROM_BANK_SIZE * CARTRIDGE->NUM_ROM_BANKS;
+    CARTRIDGE->RAM_SIZE = RAM_BANK_SIZE * CARTRIDGE->NUM_RAM_BANKS;
+
+    CARTRIDGE->ROM = malloc(CARTRIDGE->ROM_SIZE);
+    CARTRIDGE->RAM = CARTRIDGE->NUM_RAM_BANKS ? malloc(CARTRIDGE->RAM_SIZE) : nullptr;
+
 
     CARTRIDGE->CART_ROM_BANK = 1;
 
     fseek(gb_file, 0, SEEK_SET);
-    fread(CARTRIDGE->ROM, sizeof(uint8_t), rom_size, gb_file);
+    fread(CARTRIDGE->ROM, sizeof(uint8_t), CARTRIDGE->ROM_SIZE, gb_file);
     fclose(gb_file);
     io_ports_init();
 }

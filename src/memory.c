@@ -55,7 +55,7 @@ static void read_ram() {
         CPU->DATA_BUS = 0xFF;
         return;
     }
-    if (!CARTRIDGE->BANK_MODE) {
+    if (!CARTRIDGE->BANK_MODE || CARTRIDGE->NUM_RAM_BANKS < 4) {
         CPU->DATA_BUS = CARTRIDGE->RAM[(CPU->ADDRESS_BUS & 0x1FFF)];
     }
     else {
@@ -67,7 +67,7 @@ static void write_ram() {
     if (!CARTRIDGE->RAM_ENABLE || !CARTRIDGE->RAM_SIZE) {
         return;
     }
-    if (!CARTRIDGE->BANK_MODE) {
+    if (!CARTRIDGE->BANK_MODE || CARTRIDGE->NUM_RAM_BANKS < 4) {
         CARTRIDGE->RAM[CPU->ADDRESS_BUS & 0x1FFF] = CPU->DATA_BUS;
     }
     else {

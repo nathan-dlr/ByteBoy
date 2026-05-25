@@ -14,10 +14,10 @@ typedef struct CARTRIDGE_STRUCT {
     uint32_t RAM_SIZE;
     uint8_t CART_ROM_BANK;
     uint8_t RAM_UPPER_ROM;
-    uint8_t RAM_BANK;
     bool BANK_MODE;
     bool RAM_ENABLE;
-    uint16_t NUM_ROM_BANKS;
+    uint8_t NUM_ROM_BANKS;
+    uint8_t NUM_RAM_BANKS
 } CARTRIDGE_STRUCT;
 
 uint8_t* MEMORY;

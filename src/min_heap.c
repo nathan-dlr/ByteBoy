@@ -6,10 +6,10 @@
 #define OBJ_HEAP_CAPACITY 10
 
 void heap_init() {
-    OBJ_HEAP = (object_min_heap*) malloc(sizeof(object_min_heap));
+    OBJ_HEAP = (object_min_heap*)malloc(sizeof(object_min_heap));
     OBJ_HEAP->size = 0;
     OBJ_HEAP->capacity = OBJ_HEAP_CAPACITY;
-    OBJ_HEAP->objects = (OAM_STRUCT**) malloc(OBJ_HEAP_CAPACITY * sizeof(OAM_STRUCT*));
+    OBJ_HEAP->objects = (OAM_STRUCT**)malloc(OBJ_HEAP_CAPACITY * sizeof(OAM_STRUCT*));
 
     for (int i = 0; i < OBJ_HEAP_CAPACITY; i++) {
         OBJ_HEAP->objects[i] = (OAM_STRUCT*) calloc(1, sizeof(OAM_STRUCT));
