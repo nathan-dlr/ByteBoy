@@ -17,7 +17,7 @@ typedef struct CARTRIDGE_STRUCT {
     bool BANK_MODE;
     bool RAM_ENABLE;
     uint8_t NUM_ROM_BANKS;
-    uint8_t NUM_RAM_BANKS
+    uint8_t NUM_RAM_BANKS;
 } CARTRIDGE_STRUCT;
 
 uint8_t* MEMORY;

@@ -89,15 +89,19 @@ static void construct_pixel_data() {
         bit_0 = (data_low >> i) & 0x01;
         bit_1 = (data_high >> i) & 0x01;
         pixel = (bit_1 << 1) | bit_0;
-        PPU->PIXEL_DATA[j].binary_data = pixel;
-        PPU->PIXEL_DATA[j].source = source;
         if (is_obj) {
-            PPU->PIXEL_DATA[j].address = obj->address;
-            PPU->PIXEL_DATA[j].palette = obj->palette;
+            uint8_t index = obj->x_flip ? i : j;
+            PPU->PIXEL_DATA[index].binary_data = pixel;
+            PPU->PIXEL_DATA[index].source = source;
+            PPU->PIXEL_DATA[index].address = obj->address;
+            PPU->PIXEL_DATA[index].palette = obj->palette;
 
-            PPU->PIXEL_DATA[j].priority = obj->priority;
-            PPU->PIXEL_DATA[j].x_flip = obj->x_flip;
-            PPU->PIXEL_DATA[j].x_pos = obj->x_flip ? obj->x_pos+ i : obj->x_pos + j;
+            PPU->PIXEL_DATA[index].priority = obj->priority;
+            PPU->PIXEL_DATA[index].x_pos = obj->x_pos + index;
+        }
+        else {
+            PPU->PIXEL_DATA[j].binary_data = pixel;
+            PPU->PIXEL_DATA[j].source = source;
         }
     }
 }

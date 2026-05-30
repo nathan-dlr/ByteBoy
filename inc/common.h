@@ -90,7 +90,6 @@ typedef struct PIXEL_DATA {
     bool palette;
     bool priority;
     uint16_t address;
-    bool x_flip;
     uint8_t x_pos;
 } PIXEL_DATA;
 

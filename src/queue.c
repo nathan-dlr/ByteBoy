@@ -94,54 +94,79 @@ void background_fifo_push(const PIXEL_DATA* pixel_data) {
     }
 }
 
+//void sprite_fifo_push(const PIXEL_DATA* pixel_data) {
+//    PIXEL_FIFO *PIXEL_FIFO = PPU->SPRITE_FIFO;
+////    if (PIXEL_FIFO->back != -1) {
+////        for (uint8_t j = 0; j < 8; j++) {
+////            if (PIXEL_FIFO->pixel_data[PIXEL_FIFO->back]->x_pos < pixel_data->x_pos) {
+////                break;
+////            }
+////            PIXEL_FIFO->back = (PIXEL_FIFO->back - 1) & (PIXEL_FIFO_CAPACITY - 1);
+////            lower_x = true;
+////        }
+////    }
+//
+//    if (PIXEL_FIFO->front == -1) {
+//        PIXEL_FIFO->front = 0;
+//    }
+//    for (int8_t i = 0; i < 8; i++) {
+//        uint8_t next = (PIXEL_FIFO->back + 1) & (PIXEL_FIFO_CAPACITY - 1);
+//        bool empty_data = PIXEL_FIFO->pixel_data[next]->binary_data == 0xFF;
+//        bool lower_address = pixel_data[i].address < PIXEL_FIFO->pixel_data[next]->address;
+//        bool same_x_pos = pixel_data[i].x_pos == PIXEL_FIFO->pixel_data[next]->x_pos;
+//        bool new_pixel = empty_data || (!empty_data && (lower_address && same_x_pos));
+//        bool overwrite = (PIXEL_FIFO->back != -1) && (pixel_data[i].x_pos <= PIXEL_FIFO->pixel_data[PIXEL_FIFO->back]->x_pos);
+//        if (new_pixel && !overwrite) {
+//            PIXEL_FIFO->pixel_data[next]->binary_data = pixel_data[i].binary_data;
+//            PIXEL_FIFO->pixel_data[next]->source = pixel_data[i].source;
+//            PIXEL_FIFO->pixel_data[next]->palette = pixel_data[i].palette;
+//            PIXEL_FIFO->pixel_data[next]->priority = pixel_data[i].priority;
+//            PIXEL_FIFO->pixel_data[next]->address = pixel_data[i].address;
+//            PIXEL_FIFO->pixel_data[next]->x_pos = pixel_data[i].x_pos;
+//            PIXEL_FIFO->back = next;
+//            PIXEL_FIFO->size++;
+//        }
+//    }
+//}
+
+static void copy_pixel_data(PIXEL_DATA* dest, const PIXEL_DATA* src) {
+    dest->binary_data = src->binary_data;
+    dest->source = src->source;
+    dest->palette = src->palette;
+    dest->priority = src->priority;
+    dest->address = src->address;
+    dest->x_pos = src->x_pos;
+}
 void sprite_fifo_push(const PIXEL_DATA* pixel_data) {
-    uint8_t next;
-    bool x_flip = pixel_data->x_flip;
-    PIXEL_FIFO* PIXEL_FIFO = PPU->SPRITE_FIFO;
-    if (PIXEL_FIFO->front == -1) {
+    PIXEL_FIFO *PIXEL_FIFO = PPU->SPRITE_FIFO;
+    int8_t front = PIXEL_FIFO->front;
+
+    // Queue is empty, or not empty but new pixels have lower address and thus higher priority 
+    if (front == -1 || front == 0 && pixel_data[0].address < PIXEL_FIFO->pixel_data[front]->address) {
         PIXEL_FIFO->front = 0;
-    }
-    if (x_flip) {
-        for (int8_t i = 7; i >= 0; i--) {
-            next = (PIXEL_FIFO->back + 1) % PIXEL_FIFO_CAPACITY;
-            bool empty_data = PIXEL_FIFO->pixel_data[next]->binary_data == 0xFF;
-            bool lower_address = pixel_data[i].address < PIXEL_FIFO->pixel_data[next]->address;
-            bool same_x_pos = pixel_data[i].x_pos == PIXEL_FIFO->pixel_data[next]->x_pos;
-            bool new_pixel = empty_data || (!empty_data && (lower_address && same_x_pos));
-            bool overwrite = (PIXEL_FIFO->back != -1) && pixel_data[i].x_pos <= PIXEL_FIFO->pixel_data[PIXEL_FIFO->back]->x_pos;
-            if (!overwrite && new_pixel) {
-                PIXEL_FIFO->pixel_data[next]->binary_data = pixel_data[i].binary_data;
-                PIXEL_FIFO->pixel_data[next]->source = pixel_data[i].source;
-                PIXEL_FIFO->pixel_data[next]->palette = pixel_data[i].palette;
-                PIXEL_FIFO->pixel_data[next]->priority = pixel_data[i].priority;
-                PIXEL_FIFO->pixel_data[next]->address = pixel_data[i].address;
-                PIXEL_FIFO->pixel_data[next]->x_pos = pixel_data[i].x_pos;
-                PIXEL_FIFO->back = next;
-                PIXEL_FIFO->size++;
-            }
+        for (int i = 0; i < PIXEL_FIFO_CAPACITY; i++) {
+            uint8_t next = (PIXEL_FIFO->back + 1) & (PIXEL_FIFO_CAPACITY - 1);
+            copy_pixel_data(PIXEL_FIFO->pixel_data[next], &pixel_data[i]);
+            PIXEL_FIFO->back = next;
+            PIXEL_FIFO->size++;
         }
     }
-    else {
-        for (int8_t i = 0; i < 8; i++) {
-            next = (PIXEL_FIFO->back + 1) % PIXEL_FIFO_CAPACITY;
+    // Queue is not empty, and partly consumed, only replace if there's empty 
+    else if (front != 0 && PIXEL_FIFO->pixel_data[front]->x_pos == pixel_data[0].x_pos) {
+        PIXEL_FIFO->back = (front - 1) & (PIXEL_FIFO_CAPACITY - 1);
+        for (int i = 0; i < PIXEL_FIFO_CAPACITY; i++) {
+            uint8_t next = (PIXEL_FIFO->back + 1) & (PIXEL_FIFO_CAPACITY - 1);
             bool empty_data = PIXEL_FIFO->pixel_data[next]->binary_data == 0xFF;
-            bool lower_address = pixel_data[i].address < PIXEL_FIFO->pixel_data[next]->address;
-            bool same_x_pos = pixel_data[i].x_pos == PIXEL_FIFO->pixel_data[next]->x_pos;
-            bool new_pixel = empty_data || (!empty_data && (lower_address && same_x_pos));
-            bool overwrite = (PIXEL_FIFO->back != -1) && pixel_data[i].x_pos <= PIXEL_FIFO->pixel_data[PIXEL_FIFO->back]->x_pos;
-            if (!overwrite && new_pixel) {
-                PIXEL_FIFO->pixel_data[next]->binary_data = pixel_data[i].binary_data;
-                PIXEL_FIFO->pixel_data[next]->source = pixel_data[i].source;
-                PIXEL_FIFO->pixel_data[next]->palette = pixel_data[i].palette;
-                PIXEL_FIFO->pixel_data[next]->priority = pixel_data[i].priority;
-                PIXEL_FIFO->pixel_data[next]->address = pixel_data[i].address;
-                PIXEL_FIFO->pixel_data[next]->x_pos = pixel_data[i].x_pos;
-                PIXEL_FIFO->back = next;
+            bool transparent_data = PIXEL_FIFO->pixel_data[next]->binary_data == 0x00;
+            if (empty_data || transparent_data) {
+                copy_pixel_data(PIXEL_FIFO->pixel_data[next], &pixel_data[i]);
                 PIXEL_FIFO->size++;
             }
+            PIXEL_FIFO->back = next;
         }
     }
 }
+//PIXEL_FIFO->pixel_data[PIXEL_FIFO->back]
 
 void pixel_fifo_pop(PIXEL_FIFO* PIXEL_FIFO, PIXEL_DATA* ret) {
     if (PIXEL_FIFO->front == -1 || PIXEL_FIFO->size == 0) {
