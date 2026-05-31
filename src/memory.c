@@ -89,9 +89,6 @@ void read_memory(uint8_t UNUSED) {
         return;
     }
     else if (CPU->ADDRESS_BUS < 0x8000) {
-        if (CPU->ADDRESS_BUS == 0x4000 && CARTRIDGE->CART_ROM_BANK == 2) {
-            int i;
-        }
         read_bank_0x();
         return;
     }

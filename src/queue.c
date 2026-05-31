@@ -1,7 +1,6 @@
 #include <common.h>
 #include <gb.h>
 #include <ppu.h>
-#include <min_heap.h>
 #include <queue.h>
 
 #define QUEUE_CAPACITY 10
@@ -93,41 +92,6 @@ void background_fifo_push(const PIXEL_DATA* pixel_data) {
         PIXEL_FIFO->size++;
     }
 }
-
-//void sprite_fifo_push(const PIXEL_DATA* pixel_data) {
-//    PIXEL_FIFO *PIXEL_FIFO = PPU->SPRITE_FIFO;
-////    if (PIXEL_FIFO->back != -1) {
-////        for (uint8_t j = 0; j < 8; j++) {
-////            if (PIXEL_FIFO->pixel_data[PIXEL_FIFO->back]->x_pos < pixel_data->x_pos) {
-////                break;
-////            }
-////            PIXEL_FIFO->back = (PIXEL_FIFO->back - 1) & (PIXEL_FIFO_CAPACITY - 1);
-////            lower_x = true;
-////        }
-////    }
-//
-//    if (PIXEL_FIFO->front == -1) {
-//        PIXEL_FIFO->front = 0;
-//    }
-//    for (int8_t i = 0; i < 8; i++) {
-//        uint8_t next = (PIXEL_FIFO->back + 1) & (PIXEL_FIFO_CAPACITY - 1);
-//        bool empty_data = PIXEL_FIFO->pixel_data[next]->binary_data == 0xFF;
-//        bool lower_address = pixel_data[i].address < PIXEL_FIFO->pixel_data[next]->address;
-//        bool same_x_pos = pixel_data[i].x_pos == PIXEL_FIFO->pixel_data[next]->x_pos;
-//        bool new_pixel = empty_data || (!empty_data && (lower_address && same_x_pos));
-//        bool overwrite = (PIXEL_FIFO->back != -1) && (pixel_data[i].x_pos <= PIXEL_FIFO->pixel_data[PIXEL_FIFO->back]->x_pos);
-//        if (new_pixel && !overwrite) {
-//            PIXEL_FIFO->pixel_data[next]->binary_data = pixel_data[i].binary_data;
-//            PIXEL_FIFO->pixel_data[next]->source = pixel_data[i].source;
-//            PIXEL_FIFO->pixel_data[next]->palette = pixel_data[i].palette;
-//            PIXEL_FIFO->pixel_data[next]->priority = pixel_data[i].priority;
-//            PIXEL_FIFO->pixel_data[next]->address = pixel_data[i].address;
-//            PIXEL_FIFO->pixel_data[next]->x_pos = pixel_data[i].x_pos;
-//            PIXEL_FIFO->back = next;
-//            PIXEL_FIFO->size++;
-//        }
-//    }
-//}
 
 static void copy_pixel_data(PIXEL_DATA* dest, const PIXEL_DATA* src) {
     dest->binary_data = src->binary_data;

@@ -199,7 +199,7 @@ static void pop_pixel() {
     PIXEL_DATA pixel_data;
 
     // Throw away scroll pixels
-    if (PPU->NUM_SCROLL_PIXELS) {
+    if (PPU->NUM_SCROLL_PIXELS && PPU->FETCH_TYPE != WINDOW) {
         pixel_fifo_pop(PPU->BACKGROUND_FIFO, &pixel_data);
         PPU->NUM_SCROLL_PIXELS--;
         return;
